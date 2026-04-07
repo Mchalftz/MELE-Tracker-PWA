@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mel's MELE Tracker 2026 v0003</title>
+<meta name="theme-color" content="#06d6a0">
+<meta name="description" content="Professional study tracker for Philippine Mechanical Engineers Licensure Examination - Works Offline!">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MELE Tracker">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%2306d6a0' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='120' font-weight='bold' fill='white'>📊</text></svg>">
+<style>
+    :root {
+        --primary: #06d6a0;
+        --brown: #704828;
+        --green: #28fc03;
+        --red: #cf3625;
+        --bg-gradient: linear-gradient(135deg,#fff,#ffe4ec,#e6e6fa);
+    }
+
+    body { 
+        font-family: 'Segoe UI', Tahoma, sans-serif; 
+        margin: 0; 
+        display: flex; 
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg-gradient); 
+    }
+
+    .dashboard { 
+        width: 320px; 
+        padding: 15px; 
+        border-right: 1px solid #ddd; 
+        overflow-y: auto;
+        background: #fafafa;
+        transition: transform 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .main { 
+        flex: 1; 
+        padding: 20px; 
+        overflow-y: auto; 
+        height: 100vh;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    @media (max-width: 850px) {
+        .dashboard {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100%;
+            transform: translateX(-100%);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+            width: 100%;
+        }
+        .dashboard.open {
+            transform: translateX(0);
+        }
+        .main {
+            padding: 70px 15px 20px 15px;
+        }
+    }
+
+    .menu-btn {
+        display: none;
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        z-index: 1100;
+        background: #fff;
+        border: 2px solid var(--primary);
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    @media (max-width: 850px) { .menu-btn { display: block; } }
+
+    /* Dashboard Sections */
+    .dashboard-section {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .gauge-container {
+        text-align: center;
+        padding: 10px 0;
+    }
+
+    .gauge {
+        width: 100%;
+        height: 30px;
+        border-radius: 15px;
+        overflow: hidden;
+        border: 2px solid #ddd;
+        margin: 10px 0;
+    }
+
+    .gauge-fill {
+        height: 100%;
+        transition: width 0.5s ease, background 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.85em;
+    }
+
+    .quote-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        font-style: italic;
+        font-size: 0.9em;
+        line-height: 1.6;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    .focus-needed-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .focus-item {
+        background: #fff3cd;
+        border-left: 4px solid #ff6b6b;
+        padding: 10px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.85em;
+        transition: all 0.3s;
+    }
+
+    .focus-item:hover {
+        background: #fff8dc;
+        transform: translateX(3px);
+    }
+
+    /* Topic Styles */
+    .major { 
+        margin-bottom: 20px; 
+        border-radius: 12px; 
+        padding: 0; 
+        background: white; 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); 
+    }
+
+    .major.math { border-top: 6px solid var(--brown); background: rgba(112, 72, 40, 0.03); }
+    .major.power { border-top: 6px solid var(--green); background: rgba(40, 252, 3, 0.03); }
+    .major.machine { border-top: 6px solid var(--red); background: rgba(207, 54, 37, 0.03); }
+
+    h2 { 
+        margin: 0; 
+        padding: 15px; 
+        cursor: pointer; 
+        font-size: 1.2em; 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        border-bottom: 1px solid #f0f0f0;
+        user-select: none;
+    }
+
+    .major-arrow {
+        display: inline-block;
+        transition: transform 0.3s ease;
+        margin-right: 5px;
+    }
+
+    .major-arrow.expanded {
+        transform: rotate(90deg);
+    }
+
+    .subfolder-arrow {
+        display: inline-block;
+        transition: transform 0.3s ease;
+        margin-right: 5px;
+    }
+
+    .subfolder-arrow.expanded {
+        transform: rotate(90deg);
+    }
+
+  .section-progress {
+    --percent-width: 0%;
+    --fill-bg: linear-gradient(90deg, #ccc, #eee);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100px;
+    height: 40px;
+    border-radius: 25px;
+    font-size: 0.95em;
+    font-weight: 700;
+    text-align: center;
+    min-width: 100px;
+    transition: all 0.5s ease;
+    background: #FFFFFF; /* Layer 1: The white background */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+/* Layer 3: The Text (Top Layer) */
+.section-progress::before {
+    content: attr(data-percent);
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;/* Dark text for visibility */ 
+    z-index: 10; /* This keeps text above the fill */
+    pointer-events: none;
+}
+
+/* Layer 2: The Fill (Middle Layer) */
+.section-progress::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: var(--percent-width, 0%);
+    background: var(--fill-bg); /* This grabs the gradient from the script */
+    transition: width 0.5s ease;
+    z-index: 5;
+}
+    /* Gradient backgrounds for major sections - enhanced contrast */
+    .major.math {
+        background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(112, 72, 40, 0.25) 100%);
+    }
+
+    .major.power {
+        background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(40, 252, 3, 0.25) 100%);
+    }
+
+    .major.machine {
+        background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(207, 54, 37, 0.25) 100%);
+    }
+
+    h3 { 
+        cursor: pointer; 
+        margin: 0; 
+        padding: 12px 15px; 
+        font-size: 0.95em; 
+        color: #444; 
+        border-left: 3px solid #eee; 
+        border-bottom: 1px solid #f5f5f5;
+        user-select: none;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    h3:hover { 
+        background: #f9f9f9;
+        border-left-color: var(--primary);
+    }
+
+    .subfolder-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex: 1;
+    }
+
+    .select-all-checkbox {
+        margin-left: auto;
+        margin-right: 40px;
+        cursor: pointer;
+        width: 20px;
+        height: 20px;
+    }
+
+    .item { 
+        display: flex; 
+        flex-direction: column;
+        gap: 12px;
+        padding: 15px; 
+        border-bottom: 1px solid #f9f9f9; 
+    }
+
+    .item.highlighted {
+        background: #fffacd;
+    }
+
+    @media (min-width: 600px) {
+        .item { flex-direction: row; justify-content: space-between; align-items: center; }
+    }
+
+    .item-name {
+        flex: 1;
+    }
+
+    .controls { 
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+        justify-content: flex-end; 
+    }
+
+    .item-percentage { 
+        width: 70px; 
+        border-radius: 8px; 
+        text-align: center; 
+        border: 1px solid #ccc; 
+        padding: 8px; 
+        font-weight: bold; 
+        font-size: 1em; 
+    }
+
+    .notes-btn { 
+        padding: 8px 16px; 
+        cursor: pointer; 
+        border: 1px solid #999; 
+        border-radius: 8px; 
+        background: white; 
+        font-weight: 500; 
+        transition: all 0.3s;
+    }
+
+    .notes-btn.has-notes { 
+        background: #ffd700; 
+        border-color: #daa520; 
+    }
+
+    .notes-btn.stale-notes {
+        background: #d3d3d3;
+        border-color: #999;
+        color: #666;
+    }
+
+    /* Changelog */
+    .changelog-section {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .changelog-header {
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-radius: 8px;
+        user-select: none;
+        transition: all 0.3s;
+    }
+
+    .changelog-header:hover {
+        background: #f9f9f9;
+    }
+
+    .changelog-toggle {
+        font-size: 1.2em;
+        transition: transform 0.3s;
+    }
+
+    .changelog-toggle.open {
+        transform: rotate(90deg);
+    }
+
+    .changelog-items {
+        display: none;
+        padding: 15px;
+        border-top: 1px solid #eee;
+    }
+
+    .changelog-items.open {
+        display: block;
+    }
+
+    .changelog-item {
+        margin-bottom: 10px;
+        padding-left: 20px;
+        font-size: 0.9em;
+        color: #555;
+        line-height: 1.5;
+    }
+
+    .changelog-item:before {
+        content: "✓ ";
+        color: var(--primary);
+        font-weight: bold;
+        margin-left: -15px;
+        margin-right: 5px;
+    }
+
+    /* Notes Drawer */
+    .notes-panel { 
+        width: 450px; 
+        position: fixed; 
+        right: -450px; 
+        top: 0; 
+        height: 100vh; 
+        background: white; 
+        transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; 
+        flex-direction: column; 
+        box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+        z-index: 2000;
+    }
+    .notes-panel.open { right: 0; }
+    textarea { flex: 1; padding: 20px; font-size: 16px; border: none; outline: none; resize: none; background: #fffef0; line-height: 1.6; }
+    
+    .overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 900;
+        backdrop-filter: blur(2px);
+    }
+    .overlay.active { display: block; }
+
+    .expand-collapse-btns {
+        display: flex;
+        gap: 10px;
+        margin-top: auto;
+        padding-bottom: 20px;
+    }
+
+    .expand-collapse-btns button {
+        flex: 1;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        background: white;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .expand-collapse-btns button:hover {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+</style>
+</head>
+<body>
+
+<button class="menu-btn" onclick="toggleDashboard()">📊 Menu</button>
+<div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
+
+<div class="dashboard" id="dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin: 0; border: none; padding: 0;">📊 Dashboard</h3>
+        <button onclick="toggleDashboard()" style="border:none; background:none; font-size:1.5em; cursor:pointer; display:none;" class="mobile-only">✕</button>
+    </div>
+
+    <!-- Quote Box -->
+    <div class="quote-box" id="quoteBox"></div>
+
+    <!-- Overall Mastery Gauge -->
+    <div class="dashboard-section">
+        <div style="font-weight: bold; margin-bottom: 10px;">🎯 Overall Mastery</div>
+        <div style="text-align: center; margin-bottom: 10px;">
+            <span id="masteryPercent" style="font-size: 1.8em; font-weight: bold; color: #333;">0%</span>
+        </div>
+        <div class="gauge">
+            <div class="gauge-fill" id="masteryGauge" style="width: 0%; background: linear-gradient(90deg, #ff4757, #ffa502);"></div>
+        </div>
+    </div>
+
+    <!-- Focus Needed Section -->
+    <div class="dashboard-section">
+        <div style="font-weight: bold; margin-bottom: 10px;">⚠️ Focus Needed</div>
+        <ul id="weakList" class="focus-needed-list"></ul>
+        <div id="focusEmpty" style="text-align: center; color: #999; font-size: 0.9em; padding: 10px;">All topics covered!</div>
+    </div>
+
+    <!-- Changelogs Section -->
+    <div style="margin-top: auto;">
+        <div class="changelog-section">
+            <div class="changelog-header" onclick="toggleChangelog('session2')">
+                <div>
+                    <div style="font-weight: bold;">📝 This Session</div>
+                    <div style="font-size: 0.8em; color: #999;">v0003 Rev.02</div>
+                </div>
+                <div class="changelog-toggle" id="toggle-session2">▶</div>
+            </div>
+            <div class="changelog-items" id="changelog-session2">
+                <div class="changelog-item">Enhanced dashboard with overall mastery gauge (gradient color based on %)</div>
+                <div class="changelog-item">Added section progress percentages (right-aligned on major titles)</div>
+                <div class="changelog-item">Interactive "Focus Needed" buttons that scroll to and highlight topics</div>
+                <div class="changelog-item">Expandable/collapsible changelogs for version history</div>
+                <div class="changelog-item">Inspirational quote feature that rotates on each load</div>
+                <div class="changelog-item">Improved visual organization with color-coded categories</div>
+            </div>
+        </div>
+
+        <div class="changelog-section">
+            <div class="changelog-header" onclick="toggleChangelog('previous')">
+                <div>
+                    <div style="font-weight: bold;">📚 Previous Versions</div>
+                    <div style="font-size: 0.8em; color: #999;">v0001-v0002</div>
+                </div>
+                <div class="changelog-toggle" id="toggle-previous">▶</div>
+            </div>
+            <div class="changelog-items" id="changelog-previous">
+                <div class="changelog-item">Color-coded toggle arrows (Brown/Green/Red) for major sections</div>
+                <div class="changelog-item">Complete Power Plant Engineering TOC (Alcorcon)</div>
+                <div class="changelog-item">Comprehensive Machine Design TOC (PRC MELE aligned, 16 topics)</div>
+                <div class="changelog-item">Full Engineering Mathematics TOC (23 Topics)</div>
+                <div class="changelog-item">OneNote-style notepad with save timestamps</div>
+                <div class="changelog-item">Persistent storage with browser localStorage</div>
+                <div class="changelog-item">Percentage tracker with color-coded gauge</div>
+                <div class="changelog-item">Yellow Notes button for active notes, grey for stale (72+ hours)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="expand-collapse-btns" style="display: flex; flex-direction: column; gap: 15px;">
+        <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px; border-radius: 10px; text-align: center; font-weight: 600; font-size: 1.1em;">
+            📅 Days before Exam: <span id="daysUntilExam">0</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="expandAll()" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: 500; transition: all 0.3s;">📂 Expand All</button>
+            <button onclick="collapseAll()" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd; background: white; cursor: pointer; font-weight: 500; transition: all 0.3s;">📁 Collapse All</button>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <h1 style="font-size: 1.6em; margin-bottom: 5px;">Mel's MELE Tracker 2026</h1>
+    <p style="color: #666; margin-bottom: 25px;">v0003 | Exam Target: August 2026</p>
+    <div id="content"></div>
+</div>
+
+<div class="notes-panel" id="notesPanel">
+    <div style="padding: 20px; background: #f4f4f4; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+        <strong id="noteTitleShort">Notes</strong>
+        <button onclick="closeNotes()" style="border:none; background:none; font-size:1.5em; cursor:pointer;">✕</button>
+    </div>
+    <div id="noteTitleFull" style="padding: 10px 20px; font-size: 0.75em; color: #888; background: #fff; border-bottom: 1px solid #eee;"></div>
+    <textarea id="noteText" placeholder="Jot down formulas or key concepts..."></textarea>
+    <button onclick="saveNote()" style="padding: 20px; background: var(--primary); color: white; border: none; font-weight: bold; font-size: 1.1em; cursor: pointer;">💾 SAVE NOTE</button>
+</div>
+
+<script>
+    function getDaysUntilExam() {
+        const examDate = new Date(2026, 7, 20); // August 15, 2026 (month is 0-indexed)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        examDate.setHours(0, 0, 0, 0);
+        
+        const timeDiff = examDate - today;
+        const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+        
+        return daysDiff > 0 ? daysDiff : 0;
+    }
+    const quotes = [
+        "The expert in anything was once a beginner. - Helen Hayes",
+        "Success is not final, failure is not fatal. - Winston Churchill",
+        "Your limitation—it's only your imagination.",
+        "Great things never came from comfort zones.",
+        "The only way to do great work is to love what you do. - Steve Jobs",
+        "Education is the most powerful weapon. - Nelson Mandela",
+        "Believe you can and you're halfway there. - Theodore Roosevelt",
+        "Knowledge is power. - Francis Bacon",
+        "The future belongs to those who believe in the beauty of their dreams. - Eleanor Roosevelt",
+        "You are never too old to set another goal or to dream a new dream. - C.S. Lewis"
+    ];
+
+    function getRandomQuote() {
+        return quotes[Math.floor(Math.random() * quotes.length)];
+    }
+
+    // Full Dataset
+    const topics = {
+        "math": { title:"Engineering Mathematics", data:{
+            "Topic 1: Systems of Numbers & Conversion": ["Properties of integers","Number system hierarchy","Real vs rational vs irrational","Decimal-binary-octal-hex conversions","Scientific notation","Absolute value","Order of operations","Exponents laws","Radical simplification"],
+            "Topic 2: Fundamentals in Algebra": ["Algebraic expressions simplification","Linear equations","Inequalities","Factoring (GCF)","Trinomial factoring","Difference of squares","LCM/GCF applications","Proportions and ratios","Substitution method"],
+            "Topic 3: Quadratics & Logs": ["Quadratic formula","Completing the square","Discriminant analysis","Nature of roots","Exponential equations","Logarithm laws","Change of base formula","Solving log equations"],
+            "Topic 4: Word Problems": ["Age problems","Work and rate problems","Mixture problems","Motion problems","Percent increase/decrease","Ratio and proportion applications"],
+            "Topic 5: Progressions": ["Arithmetic progression (AP)","Geometric progression (GP)","Harmonic progression (HP)","Nth term formulas","Sum of series"],
+            "Topic 6: Probability": ["Basic probability","Permutation","Combination","Conditional probability","Venn diagrams","Binomial probability"],
+            "Topic 7: Plane Geometry": ["Triangle properties","Congruence and similarity","Circle theorems","Polygons interior angles","Quadrilaterals properties"],
+            "Topic 8: Solid Geometry": ["Prisms volume and SA","Cylinder volume and SA","Cone volume and SA","Sphere formulas","Pyramid geometry"],
+            "Topic 9: Trigonometry": ["Trigonometric ratios","Unit circle","Identities","Law of sines","Law of cosines","Angles of elevation/depression"],
+            "Topic 10: Spherical Trig": ["Spherical triangles basics","Napier rules","Spherical angles"],
+            "Topic 11: Analytic Geometry": ["Distance formula","Midpoint formula","Slope","Line equations","Circle equation"],
+            "Topic 12: Conics": ["Parabola","Ellipse","Hyperbola","Standard forms"],
+            "Topic 13: Calculus (Limits)": ["Limit laws","Continuity","Derivative definition","Basic derivatives"],
+            "Topic 14: Calculus (Applications)": ["Max and min problems","Optimization","Related rates"],
+            "Topic 15: Integral": ["Indefinite integrals","Substitution","Integration by parts"],
+            "Topic 16: Integral Apps": ["Definite integrals","Area under curve","Volume of revolution"],
+            "Topic 17: Diff. Equations": ["Separable equations","First order linear","Second order equations"],
+            "Topic 18: Advanced Math": ["Matrices","Determinants","Eigenvalues","Vector analysis"]
+        }},
+        "power": { title:"Power Plant Engineering", data:{
+            "Topic 1: Thermodynamics": ["Properties of working substances","First law","Second law","Ideal gases","Carnot cycle"],
+            "Topic 2: Fuels & Combustion": ["Classification of fuels","Solid fuels","Liquid fuels","Gaseous fuels","Combustion analysis"],
+            "Topic 3: Steam Cycles": ["Rankine cycle","Reheat cycle","Regenerative cycle","Combined cycles"],
+            "Topic 4: Boilers": ["Boiler types","Fire-tube vs water-tube","Boiler efficiency","Superheaters","Economizers"],
+            "Topic 5: Steam Engine": ["Types of engines","Cycle analysis","Indicated power","Mechanical efficiency"],
+            "Topic 6: Steam Turbine": ["Impulse vs reaction","Blade design","Power output","Turbine losses"],
+            "Topic 7: Diesel Plant": ["Diesel cycle","4-stroke analysis","2-stroke analysis","Performance"],
+            "Topic 8: Gas Turbine": ["Brayton cycle","Compressor performance","Combustion chamber","Efficiency"],
+            "Topic 9: Hydro Plant": ["Water turbines","Pelton wheel","Turgo turbine","Kaplan turbine"],
+            "Topic 10: Auxiliary Systems": ["Pumps","Compressors","Fans & Blowers","Heat transfer"]
+        }},
+        "machine": { title:"Machine Design", data:{
+            "Topic 1: Materials": ["Mechanical properties","Stress-strain","Hardness","Toughness"],
+            "Topic 2: Stress Analysis": ["Normal stress","Shear stress","Combined stress","Mohr's circle"],
+            "Topic 3: Mechanics": ["Bending moment","Shear force","Torsion","Deflection"],
+            "Topic 4: Failure & Fatigue": ["Static failure","Fatigue analysis","S-N diagrams","Endurance limits"],
+            "Topic 5: Shafts": ["Shaft design","Critical speeds","Keyways","Couplings"],
+            "Topic 6: Bearings": ["Rolling bearings","Sliding bearings","Bearing life","Lubrication"],
+            "Topic 7: Gears": ["Gear types","Tooth profiles","Stress analysis","Gear design"],
+            "Topic 8: Belts & Chains": ["Belt drives","Chain drives","Sprockets","Power transmission"],
+            "Topic 9: Fasteners": ["Bolts","Screws","Rivets","Weld design"],
+            "Topic 10: Springs": ["Helical springs","Leaf springs","Spring design","Buckling"]
+        }}
+    };
+
+    let noteData = JSON.parse(localStorage.getItem('noteData')) || {};
+    let currentNoteId = null;
+
+    // State tracking for expand/collapse memory
+    const expandStateMemory = {};
+
+    function renderContent() {
+        const content = document.getElementById('content');
+        content.innerHTML = '';
+
+        for (const [majorKey, majorData] of Object.entries(topics)) {
+            const majorDiv = document.createElement('div');
+            majorDiv.className = `major ${majorKey}`;
+            majorDiv.id = `major-${majorKey}`;
+            majorDiv.dataset.majorExpanded = 'true'; // Major starts expanded
+
+            // Initialize memory for this major if not exists
+            if (!expandStateMemory[majorKey]) {
+                expandStateMemory[majorKey] = {};
+            }
+
+            const header = document.createElement('h2');
+            header.style.cursor = 'pointer';
+            
+            const majorArrow = document.createElement('span');
+            majorArrow.className = 'major-arrow expanded';
+            majorArrow.id = `arrow-major-${majorKey}`;
+            majorArrow.textContent = '▶';
+            
+            const majorIcon = majorKey === 'math' ? '📐' : majorKey === 'power' ? '⚡' : '🔧';
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.innerHTML = majorIcon + ' ' + majorData.title;
+            
+            const progressSpan = document.createElement('span');
+            progressSpan.className = 'section-progress';
+            progressSpan.id = `progress-${majorKey}`;
+            progressSpan.textContent = '0%';
+            
+            header.onclick = () => toggleMajorWithMemory(majorKey, majorDiv);
+            
+            header.appendChild(majorArrow);
+            header.appendChild(titleSpan);
+            header.appendChild(progressSpan);
+            majorDiv.appendChild(header);
+
+            for (const [subKey, items] of Object.entries(majorData.data)) {
+                const subId = `sub-${majorKey}-${subKey.replace(/\s+/g, '-')}`;
+                const subDiv = document.createElement('div');
+                subDiv.id = subId;
+                subDiv.dataset.subfolderExpanded = 'false'; // Subfolders start collapsed
+
+                // Initialize memory for this subfolder if not exists
+                if (!expandStateMemory[majorKey][subId]) {
+                    expandStateMemory[majorKey][subId] = {
+                        subfolderOpen: false,
+                        itemStates: {}
+                    };
+                }
+
+                const subHeader = document.createElement('h3');
+                
+                const subArrow = document.createElement('span');
+                subArrow.className = 'subfolder-arrow';
+                subArrow.id = `arrow-${subId}`;
+                subArrow.textContent = '▶';
+                
+                const subTitle = document.createElement('span');
+                subTitle.style.cursor = 'pointer';
+                subTitle.textContent = subKey;
+                subTitle.style.marginRight = '10px';
+
+                const selectAllCheckbox = document.createElement('input');
+                selectAllCheckbox.type = 'checkbox';
+                selectAllCheckbox.className = 'select-all-checkbox';
+                selectAllCheckbox.title = 'Select all in this subfolder';
+                selectAllCheckbox.id = `select-all-${subId}`;
+                selectAllCheckbox.onchange = (e) => {
+                    e.stopPropagation();
+                    selectAllInSubfolder(subId, selectAllCheckbox.checked);
+                };
+
+                // Click on arrow or title to toggle subfolder items
+                const toggleSubfolderClick = (e) => {
+                    if (e.target.classList.contains('select-all-checkbox')) {
+                        e.stopPropagation();
+                        return;
+                    }
+                    e.stopPropagation();
+                    toggleSubfolderItems(subId, subDiv, subArrow);
+                };
+
+                subArrow.onclick = toggleSubfolderClick;
+                subTitle.onclick = toggleSubfolderClick;
+
+                const titleContainer = document.createElement('span');
+                titleContainer.style.display = 'flex';
+                titleContainer.style.alignItems = 'center';
+                titleContainer.style.flex = '1';
+                titleContainer.style.cursor = 'pointer';
+                
+                titleContainer.appendChild(subArrow);
+                titleContainer.appendChild(subTitle);
+
+                const rightContainer = document.createElement('span');
+                rightContainer.style.marginLeft = 'auto';
+                rightContainer.appendChild(selectAllCheckbox);
+
+                subHeader.appendChild(titleContainer);
+                subHeader.appendChild(rightContainer);
+                subDiv.appendChild(subHeader);
+
+                const itemsDiv = document.createElement('div');
+                itemsDiv.className = 'items-container';
+                itemsDiv.style.display = 'none'; // Hidden by default
+                itemsDiv.id = `items-${subId}`;
+
+                items.forEach((item, itemIndex) => {
+                    const itemDiv = document.createElement('div');
+                    const itemId = `${majorKey}-${subKey}-${item}`.replace(/\s+/g, '-');
+                    itemDiv.className = 'item';
+                    itemDiv.id = `item-${itemId}`;
+
+                    // Initialize item state memory if not exists
+                    if (!expandStateMemory[majorKey][subId].itemStates[itemId]) {
+                        expandStateMemory[majorKey][subId].itemStates[itemId] = {
+                            checked: false,
+                            percentage: 0
+                        };
+                    }
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `check-${itemId}`;
+                    checkbox.className = 'item-checkbox';
+                    checkbox.onchange = () => {
+                        expandStateMemory[majorKey][subId].itemStates[itemId].checked = checkbox.checked;
+                        updateProgress();
+                        updateSelectAllCheckbox(subId);
+                    };
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `check-${itemId}`;
+                    label.style.marginLeft = '10px';
+                    label.style.cursor = 'pointer';
+                    label.textContent = '📌 ' + item;
+
+                    const itemName = document.createElement('div');
+                    itemName.className = 'item-name';
+                    itemName.appendChild(checkbox);
+                    itemName.appendChild(label);
+
+                    const percentInput = document.createElement('input');
+                    percentInput.type = 'number';
+                    percentInput.className = 'item-percentage';
+                    percentInput.id = `pct-${itemId}`;
+                    percentInput.min = '0';
+                    percentInput.max = '100';
+                    percentInput.value = '0';
+                    percentInput.placeholder = '0';
+                    percentInput.style.background = 'white';
+                    percentInput.onchange = (e) => {
+                        // Validate: keep value between 0-100
+                        let val = parseInt(e.target.value) || 0;
+                        if (val < 0) val = 0;
+                        if (val > 100) val = 100;
+                        percentInput.value = val;
+                        expandStateMemory[majorKey][subId].itemStates[itemId].percentage = val;
+                        updateProgress();
+                    };
+
+                    const percentSpan = document.createElement('span');
+                    percentSpan.style.fontSize = '0.9em';
+                    percentSpan.style.color = '#999';
+                    percentSpan.textContent = '%';
+
+                    const notesBtn = document.createElement('button');
+                    notesBtn.className = 'notes-btn';
+                    notesBtn.id = `btn-${itemId}`;
+                    notesBtn.textContent = '📝 Notes';
+                    notesBtn.onclick = () => openNotes(itemId, item);
+
+                    const controls = document.createElement('div');
+                    controls.className = 'controls';
+                    controls.appendChild(percentInput);
+                    controls.appendChild(percentSpan);
+                    controls.appendChild(notesBtn);
+
+                    itemDiv.appendChild(itemName);
+                    itemDiv.appendChild(controls);
+                    itemsDiv.appendChild(itemDiv);
+                });
+
+                subDiv.appendChild(itemsDiv);
+                majorDiv.appendChild(subDiv);
+            }
+
+            content.appendChild(majorDiv);
+        }
+
+        updateProgress();
+        displayQuote();
+        document.getElementById('daysUntilExam').textContent = getDaysUntilExam();
+    }
+
+    function toggleMajorWithMemory(majorKey, majorDiv) {
+        const majorArrow = document.getElementById(`arrow-major-${majorKey}`);
+        const isMajorOpen = majorDiv.dataset.majorExpanded === 'true';
+        
+        const subfolders = majorDiv.querySelectorAll('[id^="sub-"]');
+        
+        if (isMajorOpen) {
+            // Collapse all subfolders (but remember their state)
+            subfolders.forEach(subfolder => {
+                const subId = subfolder.id;
+                const itemsContainer = subfolder.querySelector('.items-container');
+                if (itemsContainer) {
+                    itemsContainer.style.display = 'none';
+                    const subArrow = subfolder.querySelector('.subfolder-arrow');
+                    if (subArrow) subArrow.classList.remove('expanded');
+                }
+                subfolder.style.display = 'none'; // Hide subfolder header too
+            });
+            majorDiv.dataset.majorExpanded = 'false';
+            majorArrow.classList.remove('expanded');
+        } else {
+            // Expand all subfolders (restore their previous state)
+            subfolders.forEach(subfolder => {
+                const subId = subfolder.id;
+                const itemsContainer = subfolder.querySelector('.items-container');
+                subfolder.style.display = 'block'; // Show subfolder header
+                
+                // Restore the subfolder's previous open/closed state
+                if (expandStateMemory[majorKey] && expandStateMemory[majorKey][subId]) {
+                    const wasSubfolderOpen = expandStateMemory[majorKey][subId].subfolderOpen;
+                    const subArrow = subfolder.querySelector('.subfolder-arrow');
+                    
+                    if (wasSubfolderOpen && itemsContainer) {
+                        itemsContainer.style.display = 'block';
+                        if (subArrow) subArrow.classList.add('expanded');
+                    } else if (itemsContainer) {
+                        itemsContainer.style.display = 'none';
+                        if (subArrow) subArrow.classList.remove('expanded');
+                    }
+                } else if (itemsContainer) {
+                    // Default: keep closed if no memory
+                    itemsContainer.style.display = 'none';
+                }
+            });
+            majorDiv.dataset.majorExpanded = 'true';
+            majorArrow.classList.add('expanded');
+        }
+    }
+
+    function toggleSubfolderItems(subId, subDiv, arrow) {
+        const itemsContainer = subDiv.querySelector('.items-container');
+        const isSubfolderOpen = itemsContainer.style.display !== 'none';
+        
+        // Extract majorKey and subId for memory storage
+        const majorKey = subId.split('-')[1];
+        
+        if (isSubfolderOpen) {
+            // Close subfolder items
+            itemsContainer.style.display = 'none';
+            arrow.classList.remove('expanded');
+            if (expandStateMemory[majorKey] && expandStateMemory[majorKey][subId]) {
+                expandStateMemory[majorKey][subId].subfolderOpen = false;
+            }
+        } else {
+            // Open subfolder items
+            itemsContainer.style.display = 'block';
+            arrow.classList.add('expanded');
+            if (expandStateMemory[majorKey] && expandStateMemory[majorKey][subId]) {
+                expandStateMemory[majorKey][subId].subfolderOpen = true;
+            }
+        }
+    }
+
+    function selectAllInSubfolder(subId, isChecked) {
+        const subDiv = document.getElementById(subId);
+        const checkboxes = subDiv.querySelectorAll('input[type="checkbox"].item-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+            // Update memory
+            const itemId = checkbox.id.replace('check-', '');
+            const majorKey = subId.split('-')[1];
+            if (expandStateMemory[majorKey] && expandStateMemory[majorKey][subId]) {
+                expandStateMemory[majorKey][subId].itemStates[itemId].checked = isChecked;
+            }
+        });
+        updateProgress();
+    }
+
+    function updateSelectAllCheckbox(subId) {
+        const subDiv = document.getElementById(subId);
+        const allCheckboxes = subDiv.querySelectorAll('input[type="checkbox"].item-checkbox');
+        const checkedCount = Array.from(allCheckboxes).filter(cb => cb.checked).length;
+        const selectAllCheckbox = document.getElementById(`select-all-${subId}`);
+        
+        if (selectAllCheckbox) {
+            // Only check if ALL items are checked
+            selectAllCheckbox.checked = checkedCount === allCheckboxes.length && allCheckboxes.length > 0;
+            selectAllCheckbox.indeterminate = false;
+        }
+    }
+
+    function expandAll() {
+        // Expand all major sections and all subfolders
+        document.querySelectorAll('[id^="major-"]').forEach(majorDiv => {
+            const majorKey = majorDiv.id.replace('major-', '');
+            const majorArrow = document.getElementById(`arrow-major-${majorKey}`);
+            
+            majorDiv.dataset.majorExpanded = 'true';
+            if (majorArrow) majorArrow.classList.add('expanded');
+            
+            // Show all subfolders and their items
+            const subfolders = majorDiv.querySelectorAll('[id^="sub-"]');
+            subfolders.forEach(subfolder => {
+                const subId = subfolder.id;
+                const itemsContainer = subfolder.querySelector('.items-container');
+                const subArrow = subfolder.querySelector('.subfolder-arrow');
+                
+                subfolder.style.display = 'block';
+                if (itemsContainer) itemsContainer.style.display = 'block';
+                if (subArrow) subArrow.classList.add('expanded');
+                
+                // Update memory
+                if (expandStateMemory[majorKey] && expandStateMemory[majorKey][subId]) {
+                    expandStateMemory[majorKey][subId].subfolderOpen = true;
+                }
+            });
+        });
+    }
+
+    function collapseAll() {
+        // Collapse all major sections
+        document.querySelectorAll('[id^="major-"]').forEach(majorDiv => {
+            const majorKey = majorDiv.id.replace('major-', '');
+            const majorArrow = document.getElementById(`arrow-major-${majorKey}`);
+            
+            majorDiv.dataset.majorExpanded = 'false';
+            if (majorArrow) majorArrow.classList.remove('expanded');
+            
+            // Hide all subfolders
+            const subfolders = majorDiv.querySelectorAll('[id^="sub-"]');
+            subfolders.forEach(subfolder => {
+                subfolder.style.display = 'none';
+            });
+        });
+    }
+
+    function updateProgress() {
+        let totalItems = 0, completedItems = 0;
+
+        document.querySelectorAll('.item').forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            
+            totalItems++;
+            if (checkbox.checked) completedItems++;
+        });
+
+        // Calculate overall percent based ONLY on checked items
+        const overallPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+        
+        // Update dashboard
+        document.getElementById('masteryPercent').textContent = overallPercent + '%';
+        updateMasteryGauge(overallPercent);
+        
+        // Update section progress
+        for (const major of ['math', 'power', 'machine']) {
+            let sectionTotal = 0, sectionCompleted = 0;
+            document.querySelectorAll(`#major-${major} .item`).forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                
+                sectionTotal++;
+                if (checkbox.checked) sectionCompleted++;
+            });
+
+            const sectionOverall = sectionTotal > 0 ? Math.round((sectionCompleted / sectionTotal) * 100) : 0;
+            const progressEl = document.getElementById(`progress-${major}`);
+            progressEl.textContent = sectionOverall + '%';
+            
+            // Apply gauge color to progress badge
+            applyGaugeColorToProgress(progressEl, sectionOverall);
+        }
+
+        updateFocusNeeded();
+    }
+
+    function applyGaugeColorToProgress(element, percent) {
+    let gradient = '';
+    
+    if (percent <= 30) {
+        gradient = 'linear-gradient(90deg, #ff4757, #ffa502)';
+    } else if (percent <= 50) {
+        gradient = 'linear-gradient(90deg, #ffa502, #ffd700)';
+    } else if (percent <= 75) {
+        gradient = 'linear-gradient(90deg, #ffd700, #90EE90)';
+    } else {
+        gradient = 'linear-gradient(90deg, #90EE90, #228B22)';
+    }
+    
+    // Apply gradient ONLY to the fill layer
+    element.style.setProperty('--fill-bg', gradient);
+    
+    // Control fill width
+    element.style.setProperty('--percent-width', percent + '%');
+    
+    // Update text (shown via ::before)
+    element.setAttribute('data-percent', percent + '%');
+    
+    // Prevent duplicate text
+    element.textContent = '';
+}
+    function updateMasteryGauge(percent) {
+        const gauge = document.getElementById('masteryGauge');
+        let color;
+        
+        if (percent <= 30) {
+            color = `linear-gradient(90deg, #ff4757 0%, #ffa502 ${100}%)`;
+        } else if (percent <= 50) {
+            color = `linear-gradient(90deg, #ffa502 0%, #ffd700 ${100}%)`;
+        } else if (percent <= 75) {
+            color = `linear-gradient(90deg, #ffd700 0%, #90EE90 ${100}%)`;
+        } else {
+            color = `linear-gradient(90deg, #90EE90 0%, #228B22 ${100}%)`;
+        }
+        
+        gauge.style.background = color;
+        gauge.style.width = percent + '%';
+    }
+
+    function updateFocusNeeded() {
+        const weakList = document.getElementById('weakList');
+        const focusEmpty = document.getElementById('focusEmpty');
+        weakList.innerHTML = '';
+
+        document.querySelectorAll('.item').forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            const percentInput = item.querySelector('.item-percentage');
+            const currentPercent = parseInt(percentInput.value) || 0;
+
+
+            // Show in focus needed only if: NOT checked
+            if (!checkbox.checked && currentPercent >= 1 && currentPercent <= 50) {
+                const text = item.querySelector('label').textContent;
+                const itemId = item.id.replace('item-', '');
+                
+                const li = document.createElement('li');
+                li.className = 'focus-item';
+                li.innerHTML = text + ` <span style="font-size:0.8em; opacity:0.7;">(${currentPercent}%)</span>`;
+                li.onclick = () => navigateToItem(itemId);
+                weakList.appendChild(li);
+            }
+        });
+
+       // Update the empty message to be more specific
+        if (weakList.children.length === 0) {
+            focusEmpty.style.display = 'block';
+            focusEmpty.textContent = "No topics currently in the weak spot.";
+        } else {
+            focusEmpty.style.display = 'none';
+        }
+    }
+
+    function navigateToItem(itemId) {
+        const item = document.getElementById(`item-${itemId}`);
+        if (item) {
+            item.classList.add('highlighted');
+            item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            setTimeout(() => {
+                item.classList.remove('highlighted');
+            }, 3000);
+        }
+    }
+
+    function openNotes(itemId, itemName) {
+        currentNoteId = itemId;
+        document.getElementById('noteTitleShort').textContent = itemName;
+        document.getElementById('noteTitleFull').textContent = itemName;
+        document.getElementById('noteText').value = noteData[itemId]?.content || '';
+        document.getElementById('notesPanel').classList.add('open');
+        document.getElementById('overlay').classList.add('active');
+    }
+
+    function closeNotes() {
+        document.getElementById('notesPanel').classList.remove('open');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    function saveNote() {
+        const content = document.getElementById('noteText').value;
+        noteData[currentNoteId] = { content, lastSaved: new Date().toISOString() };
+        localStorage.setItem('noteData', JSON.stringify(noteData));
+        alert('Note saved!');
+    }
+
+    function toggleDashboard() {
+        document.getElementById('dashboard').classList.toggle('open');
+        document.getElementById('overlay').classList.toggle('active');
+    }
+
+    function closeAllPanels() {
+        document.getElementById('dashboard').classList.remove('open');
+        document.getElementById('notesPanel').classList.remove('open');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    function toggleChangelog(id) {
+        const items = document.getElementById(`changelog-${id}`);
+        const toggle = document.getElementById(`toggle-${id}`);
+        items.classList.toggle('open');
+        toggle.classList.toggle('open');
+    }
+
+    function displayQuote() {
+        document.getElementById('quoteBox').textContent = `"${getRandomQuote()}"`;
+    }
+
+    // ===== AUTO-SAVE STATE ON EVERY CHANGE =====
+    function autoSaveState() {
+        const state = {
+            timestamp: new Date().toISOString(),
+            expandState: expandStateMemory,
+            noteData: noteData,
+            checkboxes: {},
+            percentages: {},
+            selectAllStates: {}
+        };
+
+        // Save all checkbox states
+        document.querySelectorAll('input[type="checkbox"].item-checkbox').forEach(checkbox => {
+            state.checkboxes[checkbox.id] = checkbox.checked;
+        });
+
+        // Save all percentage values
+        document.querySelectorAll('.item-percentage').forEach(input => {
+            state.percentages[input.id] = input.value;
+        });
+
+        // Save all select-all checkbox states
+        document.querySelectorAll('input[type="checkbox"].select-all-checkbox').forEach(checkbox => {
+            state.selectAllStates[checkbox.id] = checkbox.checked;
+        });
+
+        // Save to localStorage
+        localStorage.setItem('meleTrackerState', JSON.stringify(state));
+        console.log('✓ State auto-saved');
+    }
+
+    // ===== RESTORE STATE ON PAGE LOAD =====
+    function restoreState() {
+        const savedState = localStorage.getItem('meleTrackerState');
+        if (!savedState) {
+            console.log('No previous state found');
+            return;
+        }
+
+        try {
+            const state = JSON.parse(savedState);
+            console.log('✓ Restoring state from:', state.timestamp);
+
+            // Restore expand states
+            if (state.expandState) {
+                Object.assign(expandStateMemory, state.expandState);
+            }
+
+            // Restore note data
+            if (state.noteData) {
+                Object.assign(noteData, state.noteData);
+            }
+
+            // Restore checkboxes
+            if (state.checkboxes) {
+                Object.keys(state.checkboxes).forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = state.checkboxes[id];
+                    }
+                });
+            }
+
+            // Restore percentages
+            if (state.percentages) {
+                Object.keys(state.percentages).forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.value = state.percentages[id];
+                    }
+                });
+            }
+
+            // Restore select-all states
+            if (state.selectAllStates) {
+                Object.keys(state.selectAllStates).forEach(id => {
+                    const checkbox = document.getElementById(id);
+                    if (checkbox) {
+                        checkbox.checked = state.selectAllStates[id];
+                    }
+                });
+            }
+
+            // Recalculate progress with restored state
+            updateProgress();
+            console.log('✓ State fully restored!');
+
+        } catch (error) {
+            console.error('Error restoring state:', error);
+        }
+    }
+
+    // ===== ATTACH AUTO-SAVE TO ALL CHANGES =====
+    function setupAutoSave() {
+        document.addEventListener('change', autoSaveState);
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('select-all-checkbox') || 
+                e.target.classList.contains('item-checkbox')) {
+                setTimeout(autoSaveState, 100);
+            }
+        });
+        
+        // Auto-save every 5 seconds (backup)
+        setInterval(autoSaveState, 5000);
+    }
+
+    // ===== SERVICE WORKER REGISTRATION =====
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+                .then((registration) => {
+                    console.log('✓ Service Worker registered - App works offline!');
+                })
+                .catch((error) => {
+                    console.log('Service Worker registration failed (PWA features limited):', error);
+                });
+        });
+    }
+
+    // ===== MAIN INITIALIZATION =====
+    renderContent();
+    setTimeout(() => {
+        restoreState();
+        setupAutoSave();
+    }, 500);
+</script>
+
+</body>
+</html>
