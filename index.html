@@ -803,6 +803,8 @@
                         percentInput.value = val;
                         expandStateMemory[majorKey][subId].itemStates[itemId].percentage = val;
                         updateProgress();
+                        updateFocusNeeded();
+                        autoSaveState();
                     };
 
                     const percentSpan = document.createElement('span');
@@ -1239,6 +1241,7 @@
 
             // Recalculate progress with restored state
             updateProgress();
+            updateFocusNeeded();
             console.log('✓ State fully restored!');
 
         } catch (error) {
