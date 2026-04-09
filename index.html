@@ -5,12 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Mel's MELE Tracker 2026 v0003</title>
 <meta name="theme-color" content="#06d6a0">
-<meta name="description" content="Professional study tracker for Philippine Mechanical Engineers Licensure Examination - Works Offline!">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="MELE Tracker">
 <link rel="manifest" href="./manifest.json">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%2306d6a0' width='192' height='192'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='120' font-weight='bold' fill='white'>📊</text></svg>">
 <style>
     :root {
         --primary: #06d6a0;
@@ -779,7 +775,7 @@
                     label.htmlFor = `check-${itemId}`;
                     label.style.marginLeft = '10px';
                     label.style.cursor = 'pointer';
-                    label.textContent = '📌 ' + item;
+                    label.textContent = item;
 
                     const itemName = document.createElement('div');
                     itemName.className = 'item-name';
@@ -1078,15 +1074,17 @@
             const percentInput = item.querySelector('.item-percentage');
             const currentPercent = parseInt(percentInput.value) || 0;
 
-
-            // Show in focus needed only if: NOT checked
-            if (!checkbox.checked && currentPercent >= 1 && currentPercent <= 50) {
+            // Show if: percentage between 1-50% (regardless of checkbox state)
+            if (currentPercent >= 1 && currentPercent <= 50) {
                 const text = item.querySelector('label').textContent;
                 const itemId = item.id.replace('item-', '');
                 
+                // Green circle if checked, red circle if unchecked
+                const pinColor = checkbox.checked ? '🟢' : '🔴';
+                
                 const li = document.createElement('li');
                 li.className = 'focus-item';
-                li.innerHTML = text + ` <span style="font-size:0.8em; opacity:0.7;">(${currentPercent}%)</span>`;
+                li.innerHTML = pinColor + ' ' + text + ` <span style="font-size:0.8em; opacity:0.7;">(${currentPercent}%)</span>`;
                 li.onclick = () => navigateToItem(itemId);
                 weakList.appendChild(li);
             }
@@ -1156,132 +1154,76 @@
         document.getElementById('quoteBox').textContent = `"${getRandomQuote()}"`;
     }
 
-    // ===== AUTO-SAVE STATE ON EVERY CHANGE =====
+    // ===== AUTO-SAVE STATE =====
     function autoSaveState() {
         const state = {
             timestamp: new Date().toISOString(),
             expandState: expandStateMemory,
             noteData: noteData,
             checkboxes: {},
-            percentages: {},
-            selectAllStates: {}
+            percentages: {}
         };
 
-        // Save all checkbox states
         document.querySelectorAll('input[type="checkbox"].item-checkbox').forEach(checkbox => {
             state.checkboxes[checkbox.id] = checkbox.checked;
         });
 
-        // Save all percentage values
         document.querySelectorAll('.item-percentage').forEach(input => {
             state.percentages[input.id] = input.value;
         });
 
-        // Save all select-all checkbox states
-        document.querySelectorAll('input[type="checkbox"].select-all-checkbox').forEach(checkbox => {
-            state.selectAllStates[checkbox.id] = checkbox.checked;
-        });
-
-        // Save to localStorage
         localStorage.setItem('meleTrackerState', JSON.stringify(state));
-        console.log('✓ State auto-saved');
     }
 
-    // ===== RESTORE STATE ON PAGE LOAD =====
+    // ===== RESTORE STATE =====
     function restoreState() {
         const savedState = localStorage.getItem('meleTrackerState');
-        if (!savedState) {
-            console.log('No previous state found');
-            return;
-        }
+        if (!savedState) return;
 
         try {
             const state = JSON.parse(savedState);
-            console.log('✓ Restoring state from:', state.timestamp);
+            
+            if (state.expandState) Object.assign(expandStateMemory, state.expandState);
+            if (state.noteData) Object.assign(noteData, state.noteData);
 
-            // Restore expand states
-            if (state.expandState) {
-                Object.assign(expandStateMemory, state.expandState);
-            }
-
-            // Restore note data
-            if (state.noteData) {
-                Object.assign(noteData, state.noteData);
-            }
-
-            // Restore checkboxes
             if (state.checkboxes) {
                 Object.keys(state.checkboxes).forEach(id => {
                     const checkbox = document.getElementById(id);
-                    if (checkbox) {
-                        checkbox.checked = state.checkboxes[id];
-                    }
+                    if (checkbox) checkbox.checked = state.checkboxes[id];
                 });
             }
 
-            // Restore percentages
             if (state.percentages) {
                 Object.keys(state.percentages).forEach(id => {
                     const input = document.getElementById(id);
-                    if (input) {
-                        input.value = state.percentages[id];
-                    }
+                    if (input) input.value = state.percentages[id];
                 });
             }
 
-            // Restore select-all states
-            if (state.selectAllStates) {
-                Object.keys(state.selectAllStates).forEach(id => {
-                    const checkbox = document.getElementById(id);
-                    if (checkbox) {
-                        checkbox.checked = state.selectAllStates[id];
-                    }
-                });
-            }
-
-            // Recalculate progress with restored state
             updateProgress();
             updateFocusNeeded();
-            console.log('✓ State fully restored!');
-
+            console.log('✓ State restored');
         } catch (error) {
             console.error('Error restoring state:', error);
         }
     }
 
-    // ===== ATTACH AUTO-SAVE TO ALL CHANGES =====
+    // ===== SETUP AUTO-SAVE =====
     function setupAutoSave() {
         document.addEventListener('change', autoSaveState);
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('select-all-checkbox') || 
-                e.target.classList.contains('item-checkbox')) {
-                setTimeout(autoSaveState, 100);
-            }
-        });
-        
-        // Auto-save every 5 seconds (backup)
         setInterval(autoSaveState, 5000);
     }
 
-    // ===== SERVICE WORKER REGISTRATION =====
+    // ===== SERVICE WORKER =====
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./service-worker.js', { scope: './' })
-                .then((registration) => {
-                    console.log('✓ Service Worker registered - App works offline!');
-                })
-                .catch((error) => {
-                    console.log('Service Worker registration failed (PWA features limited):', error);
-                });
-        });
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
     }
 
-    // ===== MAIN INITIALIZATION =====
     renderContent();
     setTimeout(() => {
         restoreState();
         setupAutoSave();
-    }, 500);
+    }, 300);
 </script>
 
 </body>
